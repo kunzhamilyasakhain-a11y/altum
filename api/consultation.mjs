@@ -26,7 +26,7 @@ async function sendMail({replyTo, ...message}, env) {
 }
 
 export function createHandler(send = sendMail, env = process.env) {
-  const allowed = new Set(['https://www.ispringsolutions.kz']);
+  const allowed = new Set(['https://www.ispringsolutions.kz', 'https://altum-eta.vercel.app']);
   if (env.VERCEL_URL) allowed.add('https://' + env.VERCEL_URL);
   return async function handle(request) {
     if (request.method !== 'POST') return reply(405, {ok:false});
