@@ -13,7 +13,7 @@ async function sendMail({replyTo, ...message}, env) {
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
-      from: 'iSpring Solutions <forms@mail.ispringsolutions.kz>',
+      from: 'iSpring Solutions <forms@notify.ispringsolutions.kz>',
       ...message,
       to: [message.to],
       ...(replyTo ? {reply_to: replyTo} : {}),
