@@ -100,3 +100,28 @@ input,textarea{font-size:16px}
 #consultation #form-status:empty{margin:0}
 
 @media(max-width:760px){.contacts{grid-template-columns:1fr;gap:32px}}
+
+/* Return link uses the same outline treatment as the link on Altum.kz. */
+header > .altum-return {
+  display: inline-flex;
+  align-items: center;
+  gap: .55em;
+  min-height: 44px;
+  padding-inline: 14px;
+  border-color: #bc8b96;
+  color: #5b0d21;
+  font-weight: 600;
+  white-space: nowrap;
+}
+header > .altum-return:hover { background: #5b0d21; color: #fff; }
+.altum-return svg { width: 1em; height: 1em; flex: none; }
+@media (min-width: 951px) {
+  header { gap: clamp(12px, 1.65vw, 26px); }
+}
+@media (max-width: 950px) {
+  header > .altum-return + .header-cta { margin-left: 0; }
+}
+@media (max-width: 560px) {
+  header > .altum-return + .header-cta { display: none; }
+  header > .altum-return { margin-left: auto; padding-inline: 11px; }
+}
