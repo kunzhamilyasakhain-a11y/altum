@@ -2,9 +2,69 @@ const menu=document.querySelector('.menu'),nav=document.querySelector('#nav');
 function closeMenu(){nav.classList.remove('open');menu.setAttribute('aria-expanded','false');menu.setAttribute('aria-label','Открыть меню');}
 menu.addEventListener('click',()=>{const open=menu.getAttribute('aria-expanded')!=='true';nav.classList.toggle('open',open);menu.setAttribute('aria-expanded',String(open));menu.setAttribute('aria-label',open?'Закрыть меню':'Открыть меню');});
 nav.querySelectorAll('a').forEach(a=>a.addEventListener('click',closeMenu));document.addEventListener('keydown',e=>{if(e.key==='Escape'&&nav.classList.contains('open')){closeMenu();menu.focus();}});
-const form=document.querySelector('form'),status=document.querySelector('#form-status'),contact=document.querySelector('#contact'),error=document.querySelector('#contact-error');
-contact.addEventListener('input',()=>{contact.classList.remove('invalid');contact.removeAttribute('aria-invalid');error.textContent='';});
-form.addEventListener('submit',async e=>{e.preventDefault();status.textContent='';const name=form.elements.name;if(!name.value.trim()){name.setCustomValidity('Введите ваше имя.');name.reportValidity();name.addEventListener('input',()=>name.setCustomValidity(''),{once:true});return;}const v=contact.value.trim();const valid=/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v)||(/^[+\d\s()\-]+$/.test(v)&&v.replace(/\D/g,'').length>=10&&v.replace(/\D/g,'').length<=15);if(!valid){error.textContent='Укажите корректный телефон или email.';contact.classList.add('invalid');contact.setAttribute('aria-invalid','true');contact.focus();return;}if(!form.dataset.endpoint){status.textContent='Заявка не отправлена: прием через форму пока не подключен. Напишите на info@altum.kz или напишите в WhatsApp +7 702 466 68 17.';return;}const button=form.querySelector('button');button.disabled=true;button.textContent='Отправляем…';try{const response=await fetch(form.dataset.endpoint,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:name.value.trim(),contact:v,message:form.elements.message.value.trim()})});if(!response.ok)throw new Error();status.textContent='Заявка отправлена. Спасибо за обращение!';form.reset();}catch{status.textContent='Не удалось отправить заявку. Попробуйте еще раз или напишите на info@altum.kz.';}finally{button.disabled=false;button.innerHTML='Получить консультацию <span>↗</span>';}});
+const form=document.querySelector('#consultation');
+const formStatus=document.querySelector('#form-status');
+const contact=form.elements.contact;
+const personName=form.elements.namedItem('name');
+const contactLabel=document.querySelector('#contact-label');
+const submitButton=form.querySelector('[type="submit"]');
+const contactDraft={email:'',phone:''};
+let method='email';
+
+function updateContactField(){
+  contactDraft[method]=contact.value;
+  method=form.elements.method.value;
+  const phone=method==='phone';
+  contact.type=phone?'tel':'email';
+  contact.autocomplete=phone?'tel':'email';
+  contact.inputMode=phone?'tel':'email';
+  contact.placeholder=phone?'+7 700 000 00 00':'name@company.kz';
+  contactLabel.textContent=phone?'Ваш телефон':'Ваш email';
+  contact.value=contactDraft[method];
+  contact.setCustomValidity('');
+  formStatus.textContent='';
+}
+
+form.querySelectorAll('[name="method"]').forEach(radio=>radio.addEventListener('change',updateContactField));
+form.addEventListener('input',()=>{formStatus.textContent='';});
+personName.addEventListener('input',()=>personName.setCustomValidity(''));
+contact.addEventListener('input',()=>contact.setCustomValidity(''));
+form.addEventListener('submit',async event=>{
+  event.preventDefault();
+  const name=personName.value.trim();
+  const value=contact.value.trim();
+  if(!name){
+    personName.setCustomValidity('Введите ваше имя.');
+    personName.reportValidity();
+    return;
+  }
+  if(method==='phone'&&(!/^[+0-9 ()-]+$/.test(value)||!/^\d{10,15}$/.test(value.replace(/\D/g,'')))){
+    contact.setCustomValidity('Введите номер телефона с кодом страны или города.');
+    contact.reportValidity();
+    return;
+  }
+  if(!form.dataset.endpoint){
+    formStatus.textContent='Это предпросмотр. Данные не отправлены.';
+    return;
+  }
+  submitButton.disabled=true;
+  formStatus.textContent='Отправляем заявку…';
+  try{
+    const response=await fetch(form.dataset.endpoint,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name,method,contact:value})});
+    if(!response.ok)throw new Error('Delivery failed');
+    form.reset();
+    contact.value='';
+    updateContactField();
+    contactDraft.email='';
+    contactDraft.phone='';
+    contact.value='';
+    formStatus.textContent='Заявка отправлена. Спасибо за обращение!';
+  }catch{
+    formStatus.textContent='Заявку не удалось отправить. Попробуйте ещё раз или напишите на contact@altum.kz.';
+  }finally{
+    submitButton.disabled=false;
+  }
+});
 
 const views={program:{title:'У каждого —<br> свой следующий шаг',description:'Объединяйте курсы в последовательные программы. Сотрудник видит маршрут, а вы — прогресс на каждом этапе.',alt:'Программа обучения в iSpring LMS'},reports:{title:'Прогресс команды<br> Без догадок',description:'Смотрите результаты, время прохождения и ошибки в тестах. Определяйте, кому нужна помощь и какие темы стоит повторить.',alt:'Реальный интерфейс отчетов iSpring LMS'},mobile:{title:'Обучение там,<br> где ваша команда',description:'Курсы доступны с телефона и планшета. Мобильное приложение поддерживает обучение без интернета — загрузите материалы заранее.',alt:'Мобильное приложение iSpring LMS'},suite:{title:'Ваш опыт —<br> в новом формате',description:'Создавайте курсы из презентаций PowerPoint в iSpring Suite. Добавляйте тесты, видео и диалоговые тренажеры.',alt:'Создание курса из презентации в iSpring Suite'}};
 const tabs=[...document.querySelectorAll('[data-view]')],panel=document.querySelector('#showcase-panel');
@@ -29,7 +89,7 @@ document.querySelectorAll('[data-film]').forEach(button=>button.addEventListener
 document.querySelector('#film-close').addEventListener('click',()=>dialog.close());dialog.addEventListener('click',e=>{if(e.target===dialog){const b=dialog.getBoundingClientRect();if(e.clientX<b.left||e.clientX>b.right||e.clientY<b.top||e.clientY>b.bottom)dialog.close();}});dialog.addEventListener('close',()=>{fullFilm.pause();fullFilm.removeAttribute('src');fullFilm.load();document.body.classList.remove('modal-open');lastFilmTrigger?.focus();if(!motionPaused&&heroInView&&innerWidth>650)playMotion();});fullFilm.addEventListener('error',()=>{if(fullFilm.getAttribute('src'))filmError.hidden=false;});
 
 const scenarios={onboard:{label:'АДАПТАЦИЯ / ПОНЯТНЫЙ СТАРТ',title:'Первый день<br> Уверенный следующий шаг',text:'Соберите регламенты и первые задания в программу. Новичок видит маршрут, а руководитель — прогресс на каждом этапе.',image:'program',alt:'Программа обучения в iSpring LMS',cta:'Обсудить адаптацию',message:'Хотим обсудить решение iSpring для адаптации новых сотрудников.'},standards:{label:'ОБУЧЕНИЕ / ЕДИНЫЕ СТАНДАРТЫ',title:'Одна команда<br> Общие знания',text:'Соберите продуктовые курсы, инструкции и регламенты в одном пространстве. Обучайте сотрудников разных отделов и филиалов по единым материалам.',image:'mobile',alt:'Мобильный доступ к обучению в iSpring LMS',cta:'Обсудить обучение команды',message:'Хотим подобрать iSpring для обучения команды продуктам и стандартам компании.'},assess:{label:'ПРОВЕРКА ЗНАНИЙ / ВИДИМЫЙ ПРОГРЕСС',title:'Видеть результат<br> Помогать точнее',text:'Проводите тестирование и изучайте результаты в отчетах. Находите ошибки и определяйте, кому нужна помощь и какие темы стоит повторить.',image:'reports',alt:'Отчеты о прогрессе сотрудников в iSpring LMS',cta:'Обсудить проверку знаний',message:'Интересует решение iSpring для тестирования и оценки знаний сотрудников.'},grow:{label:'РАЗВИТИЕ / ПРАКТИКА И НОВЫЕ НАВЫКИ',title:'Знания в деле<br> Навыки в работе',text:'Создавайте в iSpring Suite диалоговые тренажеры, тесты и интерактивные курсы. Помогайте команде отрабатывать рабочие ситуации и закреплять материал.',image:'suite',alt:'Создание интерактивного курса в iSpring Suite',cta:'Обсудить развитие навыков',message:'Хотим обсудить iSpring Suite для создания курсов и тренажеров.'}};
-let currentScenario='onboard';document.querySelectorAll('[data-scenario]').forEach(button=>button.addEventListener('click',()=>{currentScenario=button.dataset.scenario;const v=scenarios[currentScenario];document.querySelectorAll('[data-scenario]').forEach(b=>b.setAttribute('aria-pressed',String(b===button)));document.querySelector('#scenario-label').textContent=v.label;document.querySelector('#scenario-title').innerHTML=v.title;document.querySelector('#scenario-text').textContent=v.text;const im=document.querySelector('#scenario-image');im.src=`https://pub-7c62917b7be64befaa8300617f1172aa.r2.dev/assets/${v.image}.webp`;im.alt=v.alt;document.querySelector('#scenario-cta').innerHTML=v.cta+' <span>↗</span>';}));document.querySelector('#scenario-cta').addEventListener('click',()=>{if(!form.elements.message.value.trim())form.elements.message.value=scenarios[currentScenario].message;});
+let currentScenario='onboard';document.querySelectorAll('[data-scenario]').forEach(button=>button.addEventListener('click',()=>{currentScenario=button.dataset.scenario;const v=scenarios[currentScenario];document.querySelectorAll('[data-scenario]').forEach(b=>b.setAttribute('aria-pressed',String(b===button)));document.querySelector('#scenario-label').textContent=v.label;document.querySelector('#scenario-title').innerHTML=v.title;document.querySelector('#scenario-text').textContent=v.text;const im=document.querySelector('#scenario-image');im.src=`https://pub-7c62917b7be64befaa8300617f1172aa.r2.dev/assets/${v.image}.webp`;im.alt=v.alt;document.querySelector('#scenario-cta').innerHTML=v.cta+' <span>↗</span>';}));
 
 if('IntersectionObserver' in window){const observer=new IntersectionObserver(entries=>entries.forEach(entry=>{if(entry.isIntersecting){entry.target.classList.add('visible');observer.unobserve(entry.target);}}),{threshold:.08});if(!reduceMotion.matches)document.querySelectorAll('.section-heading,.product-card,.cinema-heading,.film-tile,.partner-content,.steps article,.capability-row article').forEach(el=>{el.classList.add('reveal');observer.observe(el);});new IntersectionObserver(entries=>{heroInView=entries[0].isIntersecting;if(heroInView&&innerWidth>650&&!navigator.connection?.saveData)playMotion();else motion.pause();},{threshold:.15}).observe(document.querySelector('.hero-demo'));new IntersectionObserver(entries=>entries.forEach(entry=>entry.target.classList.toggle('ribbon-active',entry.isIntersecting))).observe(document.querySelector('.brand-ribbon'));}
 let scrollFrame=false;function updateScroll(){const max=document.documentElement.scrollHeight-innerHeight;document.querySelector('.page-progress').style.transform=`scaleX(${max>0?scrollY/max:0})`;scrollFrame=false;}addEventListener('scroll',()=>{if(!scrollFrame){scrollFrame=true;requestAnimationFrame(updateScroll);}},{passive:true});document.addEventListener('visibilitychange',()=>{if(document.hidden){motion.pause();fullFilm.pause();}else if(innerWidth>650)playMotion();});reduceMotion.addEventListener('change',e=>{motionPaused=e.matches;if(motionPaused)motion.pause();else if(innerWidth>650)playMotion();syncMotionUI();});syncMotionUI();updateScroll();

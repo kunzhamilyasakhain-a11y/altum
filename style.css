@@ -84,3 +84,19 @@ input,textarea{font-size:16px}
  .form-note{font-size:14px}
 }
 @media(prefers-reduced-motion:reduce){.product-art img{transform:none}}
+
+/* Consultation form: one contact field, two ways to reach the visitor. */
+#consultation .form-intro{font-size:16px;color:var(--muted);margin:0 0 20px}
+#consultation h3{margin-bottom:12px}
+#consultation .contact-method{min-width:0;border:0;padding:0;margin:20px 0 0}
+#consultation .contact-method legend{padding:0;margin:0 0 8px;font-size:15px}
+#consultation .contact-options{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+#consultation .contact-options label{display:flex;align-items:center;gap:8px;margin:0;min-height:44px;padding:8px 10px;line-height:1.2;border:1px solid var(--line);border-radius:8px;cursor:pointer}
+#consultation .contact-options label:has(:checked){border-color:var(--red);background:#b512290a}
+#consultation input[type="radio"]{accent-color:var(--red);width:17px;height:17px;flex:0 0 17px;margin:0;padding:0}
+#consultation .button{margin-top:22px}
+#consultation .form-note{margin:14px 0 0}
+#consultation .form-note a{text-decoration:underline;text-underline-offset:3px}
+#consultation #form-status:empty{margin:0}
+
+@media(max-width:760px){.contacts{grid-template-columns:1fr;gap:32px}}
