@@ -66,7 +66,12 @@ export function createHandler(send = sendMail, env = process.env) {
       }, env);
       return reply(200, {ok:true});
     } catch (error) {
-      console.warn('Consultation SMTP failure', {code: /^[A-Z0-9_]+$/.test(error?.code ?? '') ? error.code : 'UNKNOWN', responseCode: Number.isInteger(error?.responseCode) ? error.responseCode : null});
+      const response = typeof error?.response === 'string' ? error.response : '';
+      const reason = /application password|app password|parol prilozheniya|парол.{0,10}приложен/i.test(response) ? 'APP_PASSWORD_REQUIRED'
+        : /block|disabled|denied|restricted|заблок|отключ/i.test(response) ? 'ACCESS_RESTRICTED'
+        : /invalid|incorrect|bad credentials|authentication failed/i.test(response) ? 'AUTH_REJECTED' : 'UNSPECIFIED';
+      const phase = /^AUTH (PLAIN|LOGIN|XOAUTH2)$/.test(error?.command ?? '') ? error.command : null;
+      console.warn('Consultation SMTP failure', {code: /^[A-Z0-9_]+$/.test(error?.code ?? '') ? error.code : 'UNKNOWN', responseCode: Number.isInteger(error?.responseCode) ? error.responseCode : null, reason, phase});
       return reply(503, {ok:false});
     }
   };
