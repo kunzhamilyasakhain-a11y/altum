@@ -1,4 +1,35 @@
 const menu=document.querySelector('.menu'),nav=document.querySelector('#nav');
+
+function onSectionLink(event) {
+  if (event.defaultPrevented || event.button !== 0 || event.metaKey ||
+      event.ctrlKey || event.shiftKey || event.altKey ||
+      !(event.target instanceof Element)) return;
+
+  const link = event.target.closest('a[href^="#"]');
+  if (!link || link.hasAttribute('download') || (link.target && link.target !== '_self')) return;
+
+  const fragment = link.getAttribute('href');
+  const section = document.getElementById(fragment.slice(1) || 'main');
+  if (!section) return;
+
+  event.preventDefault();
+  requestAnimationFrame(() => {
+    if (!section.hasAttribute('tabindex')) section.tabIndex = -1;
+    section.focus({ preventScroll: true });
+    section.scrollIntoView({ block: 'start' });
+  });
+}
+
+function clearSectionFragment() {
+  const fragment = location.hash.slice(1);
+  const section = fragment && document.getElementById(fragment);
+  if (!section) return;
+  section.scrollIntoView({ block: 'start', behavior: 'instant' });
+  history.replaceState(history.state, '', location.pathname + location.search);
+}
+
+clearSectionFragment();
+document.addEventListener('click', onSectionLink);
 function closeMenu(){nav.classList.remove('open');menu.setAttribute('aria-expanded','false');menu.setAttribute('aria-label','Открыть меню');}
 menu.addEventListener('click',()=>{const open=menu.getAttribute('aria-expanded')!=='true';nav.classList.toggle('open',open);menu.setAttribute('aria-expanded',String(open));menu.setAttribute('aria-label',open?'Закрыть меню':'Открыть меню');});
 nav.querySelectorAll('a').forEach(a=>a.addEventListener('click',closeMenu));document.addEventListener('keydown',e=>{if(e.key==='Escape'&&nav.classList.contains('open')){closeMenu();menu.focus();}});
