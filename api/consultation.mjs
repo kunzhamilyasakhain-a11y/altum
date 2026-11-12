@@ -4,20 +4,25 @@ const reply = (status, body) => Response.json(body, {
   status, headers: {'Cache-Control': 'no-store'},
 });
 
-async function sendMail(message, env) {
-  if (!env.SMTP_HOST || !env.SMTP_USER || !env.SMTP_APP_PASSWORD) {
-    throw Object.assign(new Error('SMTP not configured'), {code:'SMTP_CONFIG'});
-  }
-  const {default: nodemailer} = await import('nodemailer');
-  const smtp = nodemailer.createTransport({
-    host: env.SMTP_HOST, port: 465, secure: true, authMethod: 'LOGIN',
-    auth: {user: env.SMTP_USER, pass: env.SMTP_APP_PASSWORD},
-    connectionTimeout: 8000, greetingTimeout: 8000, socketTimeout: 10000,
+async function sendMail({replyTo, ...message}, env) {
+  if (!env.RESEND_API_KEY) throw new Error('RESEND_NOT_CONFIGURED');
+  const response = await fetch('https://api.resend.com/emails', {
+    method: 'POST',
+    headers: {
+      Authorization: 'Bearer ' + env.RESEND_API_KEY,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      from: 'iSpring Solutions <forms@mail.ispringsolutions.kz>',
+      ...message,
+      to: [message.to],
+      ...(replyTo ? {reply_to: replyTo} : {}),
+    }),
+    signal: AbortSignal.timeout(10000),
   });
-  const result = await smtp.sendMail({from: env.SMTP_USER, ...message});
-  if (!result.accepted.some(address => address.toLowerCase() === recipient)) {
-    throw new Error('Recipient not accepted');
-  }
+  if (!response.ok) throw new Error('RESEND_HTTP_' + response.status);
+  const result = await response.json();
+  if (typeof result.id !== 'string' || !result.id) throw new Error('RESEND_NO_MESSAGE_ID');
 }
 
 export function createHandler(send = sendMail, env = process.env) {
@@ -66,12 +71,9 @@ export function createHandler(send = sendMail, env = process.env) {
       }, env);
       return reply(200, {ok:true});
     } catch (error) {
-      const response = typeof error?.response === 'string' ? error.response : '';
-      const reason = /application password|app password|parol prilozheniya|парол.{0,10}приложен/i.test(response) ? 'APP_PASSWORD_REQUIRED'
-        : /block|disabled|denied|restricted|заблок|отключ/i.test(response) ? 'ACCESS_RESTRICTED'
-        : /invalid|incorrect|bad credentials|authentication failed/i.test(response) ? 'AUTH_REJECTED' : 'UNSPECIFIED';
-      const phase = /^AUTH (PLAIN|LOGIN|XOAUTH2)$/.test(error?.command ?? '') ? error.command : null;
-      console.warn('Consultation SMTP failure', {code: /^[A-Z0-9_]+$/.test(error?.code ?? '') ? error.code : 'UNKNOWN', responseCode: Number.isInteger(error?.responseCode) ? error.responseCode : null, reason, phase});
+      const reason = /^(RESEND_NOT_CONFIGURED|RESEND_NO_MESSAGE_ID|RESEND_HTTP_\d{3})$/.test(error?.message)
+        ? error.message : 'RESEND_REQUEST_FAILED';
+      console.warn('Consultation email failure', {reason});
       return reply(503, {ok:false});
     }
   };
