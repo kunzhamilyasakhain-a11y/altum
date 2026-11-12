@@ -6,7 +6,7 @@ const reply = (status, body) => Response.json(body, {
 
 async function sendMail(message, env) {
   if (!env.SMTP_HOST || !env.SMTP_USER || !env.SMTP_APP_PASSWORD) {
-    throw new Error('SMTP not configured');
+    throw Object.assign(new Error('SMTP not configured'), {code:'SMTP_CONFIG'});
   }
   const {default: nodemailer} = await import('nodemailer');
   const smtp = nodemailer.createTransport({
@@ -65,7 +65,8 @@ export function createHandler(send = sendMail, env = process.env) {
         ...(method === 'email' ? {replyTo:value} : {}),
       }, env);
       return reply(200, {ok:true});
-    } catch {
+    } catch (error) {
+      console.warn('Consultation SMTP failure', {code: /^[A-Z0-9_]+$/.test(error?.code ?? '') ? error.code : 'UNKNOWN', responseCode: Number.isInteger(error?.responseCode) ? error.responseCode : null});
       return reply(503, {ok:false});
     }
   };
