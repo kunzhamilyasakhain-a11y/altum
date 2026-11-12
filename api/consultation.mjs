@@ -72,7 +72,7 @@ export function createHandler(send = sendMail, env = process.env) {
     const value = contact.trim();
     const valid = method === 'email' ? email.test(value)
       : method === 'phone' && /^[+0-9 ()-]+$/.test(value) && /^\d{10,15}$/.test(value.replace(/\D/g, ''));
-    if (!valid || (corporate.has(origin) && method !== 'email')) return reply(400, {ok:false});
+    if (!valid) return reply(400, {ok:false});
     try {
       await send({
         to: recipient,
